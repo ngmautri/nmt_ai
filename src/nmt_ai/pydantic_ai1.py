@@ -1,6 +1,8 @@
+import io
 import time
 from datetime import datetime
 from pathlib import Path
+
 
 from colorama import Fore, Style
 from pydantic_ai import Agent, RunContext
@@ -9,6 +11,16 @@ from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.output import NativeOutput
 from pydantic_ai.providers.ollama import OllamaProvider
 from pydantic import BaseModel
+
+cwd = Path.cwd()
+# print(cwd)
+
+project_root = cwd.parents[1]
+ROOT_PATH = str(project_root.absolute())
+print(ROOT_PATH)
+
+DATA_PATH = ROOT_PATH + "//data"
+OLLAMA_INPUT =  DATA_PATH + "//ollama_input"
 
 model_dict = {
     1: 'granite4.1:3b',
@@ -34,7 +46,7 @@ class AgentResponse(BaseModel):
 # - if it is an invoice. please tell me the vendor name,  invoice date, payment term,  due date, sub-amount, tax amount, total amount and confidence.
 
 instructions= f"""
-Extract structured invoice data. Be exact about totals.
+Extract structured invoice data. please tell me about customer, vendor name, totals and currency!
 you MUST follow the rules strictly:
 
 #Document scanning:
@@ -136,16 +148,14 @@ def run_agent(llm_model):
 # Format it as a string (safe for filenames)
     tmp = now.strftime("%Y-%m-%d_%H-%M-%S")
     filename1 = f"olama_{tmp}.txt"
-    filename = f"./ollama_output//{filename1}"
+    filename = f"{OLLAMA_INPUT}//{filename1}"
     # Create and write to the file
-    with open(filename, "w", encoding="utf-8") as file:
-        # print(f"File created: {filename}")
+    with io.open(filename, "w", encoding="utf-8") as f:
+        print(f"File created: {filename}")
         print("======================================")
-        tool_f = Path(
-            r"C:\\0-NMT\\Python\\hno-app\\mm_completing\\test\ollama_output\\" + filename1)
+        tool_f = Path(filename)
         print(Fore.CYAN + Style.BRIGHT + "Tool link >> ", f"{tool_f.as_uri()}" + Style.RESET_ALL)
-
-        file.write(result.output)
+        f.write(result.output)
 
 
 

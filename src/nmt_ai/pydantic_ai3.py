@@ -5,68 +5,27 @@ from pydantic_ai.models.ollama import OllamaModel
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.output import NativeOutput
 from pydantic_ai.providers.ollama import OllamaProvider
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from typing import List, Optional
 u_prompt=""""
-Nettobeløb Fragtgebyr Momspl. beløb Moms % Momsbeløb Betalt Fakturatotal
-Ordre nr.......:
-Kunde nr......:
-Varetur.........:
-Afdeling.......:
-Arbejdskort.:
-Rekvisition
-Deres ref.
-Leveret pr.
-Vores ref.
-Betalingsbetingelse
-Forfaldsdato
-Side Fakturanr. Dato
-Valuta
-Lev.
-ant.
-Bestillingsnummer tekst Ordre Lev.Dato Bruttopris Nettopris Beløb
-AD Danmark A/S
-Stensgårdvej 1
-5500 Middelfart
-Tlf. 30 50 30 50
-info@addanmark.dk
-Alt til værkstedet
-- samlet ét sted! addanmark.dk
-CVR: 12 04 80 33
-Danske Bank - konto:
-4394 0002589540
-Returnering: Kun produkter i ubrudt emballage, og som er købt igennem AD Danmark A/S. Skaffevarer samt EL-dele og elektroniske komponenter tages ikke retur · Returgebyr: Returneres varen inden for 14 dage
-pålægges 0 % i gebyr, mellem 14-30 dage pålægges et gebyr på 15 %, senere end 30 dage pålægges der et gebyr på 25 % · Betaling efter forfaldstidspunkt: Der tilskrives rente med 1,6% per påbegyndt måned ·
-Ejendomsforhold: AD Danmark A/S bevarer ejendomsretten til produkterne, indtil betaling er sket i sin helhed · Herudover henvises til salgs- og leveringsbetingelser på www.addanmark.dk
-*109110307*
-Mascot International A/S
-Silkeborgvej 14
-7442 Engesvang 87244700
-Att.: Erik Christensen
-115224730
-896115
-Leveringsadresse:
-Mascot International A/S
-Silkeborgvej 14
-7442 Engesvang Silkeborg
-FAKTURA
-ec1 Varetur Løbende måned + 10 dage 1 6709753 29.05.26
-ec1 (WEB) 10/06-2026 DKK
-1 VA369494241 29/05-26
-SONAX Profiline Foam Polerskive 277,00 171,74 171,74
-Ref.nr.: 494241
-1 VA369494200 29/05-26
-SONAX Profiline Foam Polerskive 289,00 179,18 179,18
-Ref.nr.: 494200
-Ved elektronisk betaling kan følgende betalingsinformation
-benyttes: +71< 000000067097535+85799665<
-350,92 29,00 379,92 25,00 94,98 0,00 474,90
-EDoc barcode: 2605290045
-EDoc received: 2026-05-29 10:33:26
-EDoc original filename:
-Faktura_6709753_til_ordre_115224730_hYIU.pdf
-2605290045
+Omschrijving Aantal Prijs BTW % Totaalbedrag
+Huur opslagbox Lange Hei 1 € 140,00 21% € 140,00
+€ 140,00
+€ 169,40
+Totaal exclusief BTW
+Totaal te voldoen
+BTW hoog tarief € 29,40
+T.a.v. Simone Focke
+Mascot International B.V.
+Rijksweg 79
+1411GE Naarden
+Factuur
+-
+Uw BTW-nummer Uw referentie Factuurdatum Vervaldatum Factuurnummer
+Huur opslagbox juni 1 juni 2026 8 juni 2026 26700044
+Wij verzoeken u deze factuur voor 08-06-2026, onder vermelding van het factuurnummer,
+te betalen op bankrekeningnummer NL46 RABO 0170 4697 43 (Cafe de Coop, SPRUNDEL).
 """
 from datetime import date
 
@@ -82,7 +41,7 @@ class Invoice(BaseModel):
     invoice_number: Optional[str] = Field(description="invoice number")
     # invoice_date: Optional[str]
     invoice_date: Optional[str] = Field(description="Invoice Date")
-    language: Optional[str] = Field(description="the language of invoice")
+    language: Optional[str] = Field(default=None, description="the language of invoice")
 
     # due_date: Optional[str]
     due_date: Optional[str] = Field(description="the due date of invoice")
@@ -95,7 +54,7 @@ class Invoice(BaseModel):
     tax_rate: Optional[float] = Field(description="Tax rate")
     tax_amount: Optional[float] = Field(description="Total VAT charged on the invoice")
     total: Optional[float] = Field(description="Final invoice total — net_total plus vat_amount")
-    confidence: float = Field(description="Confidence score of the extraction between 0.0 and 1.0.", ge=0.0, le=1.0)
+    confidence: float = Field(default=0.1 ,description="Confidence score of the extraction between 0.0 and 1.0.", ge=0.0, le=1.0)
 
 
 model_dict = {
@@ -155,31 +114,42 @@ class AgentResponse(BaseModel):
 
 
 def run_agent(llm_model):
-    # 2. Configure Pydantic AI to use a local Granite endpoint (e.g., via Ollama on port 11434)
-    model = OpenAIChatModel(
-        llm_model, # or your specific Granite tag
-        provider=OllamaProvider(
-            base_url='http://localhost:11434/v1/',
-            api_key='ollama' # Local endpoint doesn't strictly need a real key
+    try:
+        # 2. Configure Pydantic AI to use a local Granite endpoint (e.g., via Ollama on port 11434)
+        model = OpenAIChatModel(
+            llm_model, # or your specific Granite tag
+            provider=OllamaProvider(
+                base_url='http://localhost:11434/v1/',
+                api_key='ollama' # Local endpoint doesn't strictly need a real key
+            )
         )
-    )
 
-    # 3. Initialize the Agent
-    agent = Agent(
-        model,
-        output_type=Invoice,
-        # system_prompt=SYSTEM_PROMPT,
-        instructions=INSTRUCTIONS
-    )
+        # 3. Initialize the Agent
+        agent = Agent(
+            model,
+            output_type=Invoice,
+            # system_prompt=SYSTEM_PROMPT,
+            instructions=INSTRUCTIONS
+        )
 
 
-    # 4. Run the Agent
-    result = agent.run_sync(f"<text>{u_prompt}</text>")
-    print(result.all_messages())
-    print(result.output)
+        # 4. Run the Agent
+        result = agent.run_sync(f"<text>{u_prompt}</text>")
+        print(result.all_messages())
+        print(result.output)
 
+    except ValidationError as exc:
+        missing_fields = [
+            error["loc"][0]
+            for error in exc.errors()
+            if error["type"] == "missing"
+        ]
+
+        print("Missing fields:", missing_fields)
+        # Output: Missing fields: ['name', 'email']
 
 for k,v in model_dict.items():
+
     print (f"Model: {v}")
     print(f">>>>>>> Running. Please wait.....")
     start = time.time()
@@ -187,3 +157,4 @@ for k,v in model_dict.items():
     end = time.time()
     print(f"=>>>>>> Execution time: {end - start:.6f} seconds")
     print(f"---------------------------------------------------")
+    # Filter and extract the names of all missing fields
