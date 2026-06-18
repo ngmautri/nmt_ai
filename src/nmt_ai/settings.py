@@ -1,5 +1,7 @@
 # app.py
 import os
+from pathlib import Path
+
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -17,3 +19,19 @@ debug_mode = os.getenv('DEBUG', 'False').lower() == 'true'  # Handle boolean con
 # Example of using a variable
 if debug_mode:
     print("Application is running in debug mode.")
+
+
+cwd = Path.cwd()
+print(cwd)
+
+project_root = cwd.parents[1]
+ROOT_PATH = str(project_root.absolute())
+
+DATA_PATH = ROOT_PATH + "\\data"
+LOGS_PATH = ROOT_PATH + "\\logs"
+OLLAMA_INPUT =  DATA_PATH + "\\ollama_input"
+VENDOR_DB =  DATA_PATH + "\\vendor_db"
+
+
+print(ROOT_PATH)
+print(DATA_PATH)

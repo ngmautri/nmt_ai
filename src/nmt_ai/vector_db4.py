@@ -1,4 +1,5 @@
 import chromadb
+import pandas as pd
 
 from _testcapi import awaitType
 from pydantic import BaseModel
@@ -18,34 +19,30 @@ emb_model = OpenAIEmbeddingModel(
 )
 embedder = Embedder(emb_model)
 
+df = pd.read_excel(DATA_PATH + "\\3600.xlsx")
 
-async def fetch_data():
+# 2. Combine columns into one text string per row
+texts = (str(df["Vendor"]) + " " + df["Name 1"] + " " + df["VAT registration no."]).tolist()
+ids = (df["Vendor"]).tolist()
+print(ids)
+
+
+
+async def build_db():
     # Embed a search query
 
     client = chromadb.PersistentClient(path=VENDOR_DB)
 
-    result = await embedder.embed_query('What is machine learning?')
-    print(f'Embedding dimensions: {result.embeddings[0]}')
-    print(f'Tokens used: {result.provider_name}')
-
     # > Embedding dimensions: 1536
     # Embed multiple documents at once
-    docs = ["invoice total is 200", "payment due tomorrow"]
+    docs = texts
 
     embbs = await embedder.embed_documents(docs)
-    print(embbs.embeddings)
+    # print(embbs.embeddings)
     col = client.get_or_create_collection("test_collection")
-    col.add(ids=["a", "b"], embeddings=embbs.embeddings, documents=docs)
+    col.add(ids=ids, embeddings=embbs.embeddings, documents=docs)
 
 
-
-    query = "is it 150?"
-    result = await embedder.embed_query(query)
-
-    res = col.query(query_embeddings=result.embeddings, n_results=2, include=["documents", "distances"])
-    print(res)
-
-
-asyncio.run(fetch_data())
+asyncio.run(build_db())
 
 
