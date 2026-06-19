@@ -1,5 +1,4 @@
 import chromadb
-import pandas as pd
 
 from _testcapi import awaitType
 from pydantic import BaseModel
@@ -19,32 +18,23 @@ emb_model = OpenAIEmbeddingModel(
 )
 embedder = Embedder(emb_model)
 
-df = pd.read_excel(DATA_PATH + "\\3600.xlsx")
 
-# 2. Combine columns into one text string per row
-texts = (str(df["Vendor"]) + " " + df["Name 1"] + " " + df["VAT registration no."]).tolist()
-ids = (df["Vendor"]).tolist()
-
-id_strings = [str(num) for num in ids]
-print(id_strings)
-
-
-
-async def build_db():
+async def fetch_data(q):
     # Embed a search query
 
+    print(q)
+
     client = chromadb.PersistentClient(path=VENDOR_DB)
-
-    # > Embedding dimensions: 1536
-    # Embed multiple documents at once
-    docs = texts
-
-    embbs = await embedder.embed_documents(docs)
-    # print(embbs.embeddings)
     col = client.get_or_create_collection("vendor_collection")
-    col.add(ids=id_strings, embeddings=embbs.embeddings, documents=docs)
 
 
-asyncio.run(build_db())
+    result = await embedder.embed_query(q)
+
+    res = col.query(query_embeddings=result.embeddings, n_results=1, include=["documents", "distances"])
+    print(res)
+    return res["ids"]
+
+#
+# asyncio.run(fetch_data("Immobilien"))
 
 
