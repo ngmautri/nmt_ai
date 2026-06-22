@@ -19,14 +19,16 @@ emb_model = OpenAIEmbeddingModel(
 )
 embedder = Embedder(emb_model)
 
-df = pd.read_excel(DATA_PATH + "\\3600.xlsx")
+df = pd.read_excel(DATA_PATH + "\\vendor_input.xlsx")
 
 # 2. Combine columns into one text string per row
-texts = (str(df["Vendor"]) + " " + df["Name 1"] + " " + df["VAT registration no."]).tolist()
-ids = (df["Vendor"]).tolist()
+texts = df['Document'].tolist()
+print(texts[0])
+print(len(texts)    )
+ids = (df["ID"]).tolist()
 
 id_strings = [str(num) for num in ids]
-print(id_strings)
+# print(id_strings)
 
 
 
@@ -39,10 +41,15 @@ async def build_db():
     # Embed multiple documents at once
     docs = texts
 
-    embbs = await embedder.embed_documents(docs)
-    # print(embbs.embeddings)
-    col = client.get_or_create_collection("vendor_collection")
-    col.add(ids=id_strings, embeddings=embbs.embeddings, documents=docs)
+    n=0
+    for doc in docs:
+        embbs = await embedder.embed_documents(doc)
+        # print(embbs.embeddings)
+        col = client.get_or_create_collection("vendor_collection")
+
+        print(doc)
+        col.add(ids=id_strings[n], embeddings=embbs.embeddings, documents=doc)
+        n = n + 1
 
 
 asyncio.run(build_db())
