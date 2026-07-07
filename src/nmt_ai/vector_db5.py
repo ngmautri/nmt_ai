@@ -9,7 +9,6 @@ from pydantic_ai.output import NativeOutput
 from pydantic_ai.providers.ollama import OllamaProvider
 from pydantic_ai import Embedder
 import asyncio
-import settings
 from nmt_ai.settings import DATA_PATH, VENDOR_DB
 
 emb_model = OpenAIEmbeddingModel(
