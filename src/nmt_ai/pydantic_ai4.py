@@ -48,8 +48,10 @@ class Invoice(BaseModel):
 
 def check_invoice(u_prompt:str):
 
-    model_dict = {
+    model_dict  = {
         1: 'granite4.1:3b',
+        2: 'granite4.2:3b',
+
         # 2: 'granite4:tiny-h',
         # 3: 'ibm/granite4:latest',
         # 4: 'gemma3:latest',

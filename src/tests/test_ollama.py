@@ -16,7 +16,7 @@ class CityLocation(BaseModel):
 
 model_dict ={
     1: "ministral-3:3b",
-    2: "granite4.1:3b",
+    2: "granite4.2:3b",
 }
 
 import time
