@@ -52,7 +52,7 @@ collection.add(
     metadatas=df.to_dict(orient="records")  # keep original columns
 )
 
-embbs = await embedder.embed_documents(texts)
+# embbs = await embedder.embed_documents(texts)
 print(embbs.embeddings)
 
 # 7. Query ChromaDB

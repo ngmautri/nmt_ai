@@ -21,7 +21,7 @@ embedder = Embedder(emb_model)
 async def fetch_data(q):
     # Embed a search query
 
-    print(q)
+    print(f"Query:{q}")
 
     client = chromadb.PersistentClient(path=VENDOR_DB)
     col = client.get_or_create_collection("vendor_collection")
@@ -31,9 +31,24 @@ async def fetch_data(q):
 
     res = col.query(query_embeddings=result.embeddings, n_results=1, include=["documents", "distances"])
     print(res)
-    return res["ids"]
+    if len(res) > 0:
+        # print (res["documents"][0])
 
-#
-# asyncio.run(fetch_data("Immobilien"))
+        raw = res["documents"][0]
+        s = raw[0]
+        parts = [p.strip() for p in s.split(";")]
+
+        d = {}
+        for p in parts:
+            key, value = p.split(":", 1)
+            d[key.strip()] = value.strip()
+
+        # print(d)
+        # print(d["Vendor Number"])
+        return {"vendor_name_sap": d["Vendor Name"], "vendor_number": d["Vendor Number"]}
+    else:
+        return None
+
+# asyncio.run(fetch_data("40824537"))
 
 
