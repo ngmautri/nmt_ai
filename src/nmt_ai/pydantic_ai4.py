@@ -11,6 +11,7 @@ from pydantic_ai.providers.ollama import OllamaProvider
 from pydantic import BaseModel, Field, ValidationError, field_validator
 from nmt_ai.models.vendor_invoices import Invoice
 
+
 from typing import List, Optional, Literal
 from nmt_ai.vector_db5 import fetch_data
 
@@ -22,7 +23,7 @@ model_dict = {
     #  4: 'gemma4:latest',
     # 5: 'gemma4:e2b',
     6: 'granite4.1:8b',
-    7: 'ministral-3:3b',
+    # 7: 'ministral-3:3b',
     8: 'ministral-3:8b',
     # 9: 'qwen3.5:4b',
 }
@@ -106,9 +107,7 @@ def run_agent(llm_model,invoice_text):
                 base_url='http://localhost:11434/v1/',
                 # base_url='http://localhost:11434/v1/',
                 api_key='ollama'  # Local endpoint doesn't strictly need a real key,
-
             ),
-
         )
 
         # 3. Initialize the Agent
@@ -146,11 +145,14 @@ def run_agent(llm_model,invoice_text):
         # 4. Run the Agent
 
         result = agent.run_sync(f"{invoice_text}")
+        print(result)
         print(result.all_messages())
         print(result.output)
+        print (isinstance(result.output, Invoice))
         return result.output
 
     except ValidationError as exc:
+        print (exc)
         missing_fields = [
             error["loc"][0]
             for error in exc.errors()
@@ -165,17 +167,20 @@ print(pydantic_ai.__version__)
 
 
 
-def check_invoice (invoice_text):
+def check_invoice (invoice_text,input_file):
     result_list = []
     for k, v in model_dict.items():
         print(f"Model: {v}")
-        print(f">>>>>>> Running. Please wait.....")
+        print(f"        >>>>>>> Running. Please wait.....")
         start = time.time()
         r = run_agent(v,invoice_text)
-        result_list.append(r)
         end = time.time()
-        print(f"=>>>>>> Execution time: {end - start:.6f} seconds")
+        print(f"        =>>>>>> Execution time: {end - start:.6f} seconds")
         print(f"---------------------------------------------------")
+
+        r_dict = {"llm_model":v, "invoice":r,"input_file":input_file,"duration":f"{end - start:.6f} second"}
+        result_list.append(r_dict)
+
         # Filter and extract the names of all missing fields
 
     return result_list

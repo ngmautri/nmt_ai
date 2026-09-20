@@ -1,7 +1,9 @@
 import asyncio
 import time
+import traceback
 
 import pydantic_ai
+from openpyxl import Workbook
 from pydantic_ai import Agent, RunContext, ModelSettings
 from pydantic_ai.capabilities import Thinking
 from pydantic_ai.models.ollama import OllamaModel
@@ -11,7 +13,9 @@ from pydantic_ai.providers.ollama import OllamaProvider
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from typing import List, Optional, Literal
-from nmt_ai.vector_db5 import fetch_data
+from nmt_ai.helpers import const
+import numpy as np
+
 
 class LineItem(BaseModel):
     description: Optional[str]
@@ -138,6 +142,7 @@ class Invoice_tmp1(BaseModel):
     #         return None
     #     return
 
+
 class Invoice(BaseModel):
     """
     A structured representation of an invoice document.
@@ -161,7 +166,11 @@ class Invoice(BaseModel):
     )
     vendor_name: Optional[str] = Field(
         default=None,
-        description="Legal or trading name of the vendor issuing the invoice."
+        description="Legal or trading name of the vendor issuing the invoice.")
+
+    vendor_name_sap: Optional[str] = Field(
+        default=None,
+        description="name of the vendor in SAP to be retrieved from Tool."
     )
     vendor_vat: Optional[str] = Field(
         default=None,
@@ -170,6 +179,11 @@ class Invoice(BaseModel):
     customer_name: Optional[str] = Field(
         default=None,
         description="Name of the customer or client receiving the invoice."
+    )
+
+    customer_address: Optional[str] = Field(
+        default=None,
+        description="address of the customer or client of the invoice."
     )
     currency: Optional[str] = Field(
         default=None,
@@ -202,3 +216,97 @@ class Invoice(BaseModel):
         le=1.0
     )
 
+
+class InvoiceOutput:
+    def export_to_excel(self, *kwargs):
+        try:
+            # print(kwargs)
+            if type(kwargs) != tuple:
+                raise Exception("Sorry, the done is empty1")
+                return
+
+            if len(kwargs[0]) == 0:
+                raise Exception("Sorry, the done is empty2")
+                return
+
+            result_list = kwargs[0]['result_list']
+            output_path = kwargs[0]['output_path']
+
+            workbook = Workbook()
+            sheet = workbook.active
+
+            headers = np.array([
+                "#",
+                "vendor_name",
+                "vendor_name_sap",
+                "vendor_vat",
+                "invoice_number",
+                "invoice_date",
+                "due_date",
+                "language",
+                "customername",
+                "customer address",
+                "currency",
+                "subtotal",
+                "tax_rate",
+                "tax_amount",
+                "total",
+                "pmt term",
+                "source",
+                "model",
+                "confidence",
+                "duration",
+            ])
+
+            n = 0
+            header_row = 2
+            col_no = 1
+            for h in headers:
+                excel_col = const.excel_cols[col_no]
+                cell = excel_col + str(header_row)
+                sheet[cell] = h
+                col_no = col_no + 1
+
+            counter = 1
+
+            for i in result_list:
+                print(i)
+                llm_model = i['llm_model']
+                input_file = i['input_file']
+                duration = i['duration']
+                r = i["invoice"]
+                if (isinstance(r, Invoice)):
+                    cols = np.array([
+                        counter,
+                        r.vendor_name,
+                        r.vendor_name_sap,
+                        r.vendor_vat,
+                        r.invoice_number,
+                        r.invoice_date,
+                        r.due_date,
+                        r.language,
+                        r.customer_name,
+                        r.customer_address,
+                        r.currency,
+                        r.subtotal,
+                        r.tax_rate,
+                        r.tax_amount,
+                        r.total,
+                        r.payment_terms,
+                        input_file, llm_model, r.confidence, duration
+                    ])
+
+                    col_no = 1
+
+                    for c in cols:
+                        excel_col = const.excel_cols[col_no]
+                        cell = excel_col + str(header_row + counter)
+                        sheet[cell] = c
+                        col_no = col_no + 1
+                    counter = counter + 1
+
+            workbook.save(filename=output_path + "\\output.xlsx")
+
+        except Exception as e:
+            print(e)
+            traceback.print_exc()
