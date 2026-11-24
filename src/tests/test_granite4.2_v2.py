@@ -9,7 +9,7 @@ from nmt_ai.vector_db5 import fetch_data
 from pydantic_ai import Agent, RunContext, ModelSettings
 from pydantic_ai.capabilities import Thinking
 from pydantic_ai.models.ollama import OllamaModel
-from pydantic_ai.models.openai import OpenAIChatModel
+from pydantic_ai.models.openai import OpenAIChatModel, OpenAIModelName
 from pydantic_ai.output import NativeOutput, PromptedOutput
 from pydantic_ai.providers.ollama import OllamaProvider
 from pydantic import BaseModel, Field, ValidationError, field_validator
@@ -30,6 +30,9 @@ model_settings = ModelSettings(
     max_new_tokens=32384,
     max_tokens=32384,
     normalize_tool_arguments=True,
+    extra_body={
+        "think": True,
+    },
     # reasoning_effort="medium"
 )
 
@@ -81,6 +84,7 @@ async def main():
 
     print(result.output)
     print(result.all_messages())
+    # print(result.model_dump_json(indent=2))
 
 
 
