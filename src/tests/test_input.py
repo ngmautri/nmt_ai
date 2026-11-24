@@ -2,7 +2,7 @@ import time
 from pathlib import Path
 
 from nmt_ai.pre_process.pdf_extract import PDFExtract
-from nmt_ai.pydantic_ai4 import check_invoice
+from nmt_ai.pydantic_ai6 import check_invoice
 from nmt_ai.models.vendor_invoices import InvoiceOutput
 from nmt_ai.settings import *
 invoices_folder_str = DATA_PATH + "/invoices"
