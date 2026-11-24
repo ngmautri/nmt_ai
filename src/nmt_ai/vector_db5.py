@@ -11,15 +11,18 @@ from pydantic_ai import Embedder
 import asyncio
 from nmt_ai.settings import DATA_PATH, VENDOR_DB
 
-emb_model = OpenAIEmbeddingModel(
-    model_name="embeddinggemma:latest",
-    provider=OllamaProvider(base_url='http://localhost:11434/v1'),
-)
-embedder = Embedder(emb_model)
+
 
 
 async def fetch_data(q):
     # Embed a search query
+
+    emb_model = OpenAIEmbeddingModel(
+        model_name="embeddinggemma:latest",
+        provider=OllamaProvider(base_url='http://localhost:11434/v1'),
+    )
+
+    embedder = Embedder(emb_model)
 
     print(f"Query:{q}")
 
@@ -49,6 +52,6 @@ async def fetch_data(q):
     else:
         return None
 
-# asyncio.run(fetch_data("40824537"))
+# asyncio.run(fetch_data("Microsoft dk"))
 
 

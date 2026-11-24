@@ -47,15 +47,15 @@ class Invoice(BaseModel):
     confidence: float = Field(default=0.1 ,description="Confidence score of the extraction between 0.0 and 1.0.", ge=0.0, le=1.0)
 
 model_dict  = {
-    1: 'granite4.1:3b',
+    # 1: 'granite4.1:3b',
     # 2: 'granite4.2:3b',
 
     # 2: 'granite4:tiny-h',
     # 3: 'ibm/granite4:latest',
     # 4: 'gemma3:latest',
     # 5: 'gemma4:e2b',
-    # 6: 'granite4.1:8b',
-    # 7: 'ministral-3:3b',
+    6: 'granite4.1:8b',
+    7: 'ministral-3:3b',
     # 8: 'ministral-3',
     # 9: 'qwen3.5:4b',
 }

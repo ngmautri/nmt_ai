@@ -22,24 +22,21 @@ model_dict = {
     # 3: 'ibm/granite4:latest',
     #  4: 'gemma4:latest',
     # 5: 'gemma4:e2b',
-    6: 'granite4.1:8b',
-    # 7: 'ministral-3:3b',
-    8: 'ministral-3:8b',
+    # 6: 'granite4.1:8b',
+    7: 'granite4.2:8b',
+    # 8: 'ministral-3:8b',
     # 9: 'qwen3.5:4b',
+    # 10:'llama3.1:8b'
 }
 
 SYSTEM_PROMPT = """
 You are a financial invoice extraction agent.
-Output MUST be valid JSON matching the Invoice schema.
-Do not include explanations, comments, or natural language.
-If a value is missing, set it to null.
-
-Do not include explanations, comments, labels, or Markdown.
-The very first character must be '{'.
+Reason briefly before answering.
 """
 
 INSTRUCTIONS = """
 you are an expert for invoice extraction. please extract invoice from provided text!
+
 Output MUST be valid JSON matching the Invoice schema.
 Do not include explanations, comments, or natural language.
 If a value is missing, set it to null.
@@ -99,6 +96,7 @@ def run_agent(llm_model,invoice_text):
             max_new_tokens=32384,
             max_tokens=32384,
             normalize_tool_arguments=True,
+            # reasoning_effort="medium"
         )
 
         model = OllamaModel(
@@ -118,7 +116,6 @@ def run_agent(llm_model,invoice_text):
             # system_prompt=SYSTEM_PROMPT,
             instructions=INSTRUCTIONS,
             model_settings=model_settings,
-
         )
 
         @agent.tool
@@ -144,8 +141,11 @@ def run_agent(llm_model,invoice_text):
 
         # 4. Run the Agent
 
+        print(f"..................running.................")
         result = agent.run_sync(f"{invoice_text}")
-        print(result)
+        # print(result.all_messages())
+
+        # print(result)
         print(result.all_messages())
         print(result.output)
         print (isinstance(result.output, Invoice))
@@ -173,7 +173,8 @@ def check_invoice (invoice_text,input_file):
         print(f"Model: {v}")
         print(f"        >>>>>>> Running. Please wait.....")
         start = time.time()
-        r = run_agent(v,invoice_text)
+        r=  asyncio.run(run_agent(v,invoice_text))
+        # r = run_agent(v,invoice_text)
         end = time.time()
         print(f"        =>>>>>> Execution time: {end - start:.6f} seconds")
         print(f"---------------------------------------------------")

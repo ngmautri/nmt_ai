@@ -172,6 +172,11 @@ class Invoice(BaseModel):
         default=None,
         description="name of the vendor in SAP to be retrieved from Tool."
     )
+
+    vendor_number: Optional[str] = Field(
+        default=None,
+        description="Vendor number in SAP to be retrieved from Tool."
+    )
     vendor_vat: Optional[str] = Field(
         default=None,
         description="Vendor's VAT (Value Added Tax) registration number."
@@ -210,7 +215,7 @@ class Invoice(BaseModel):
         description="Final payable amount, equal to subtotal plus tax_amount."
     )
     confidence: float = Field(
-        default=0.1,
+        default=0.05,
         description="Confidence score (0.0–1.0) indicating reliability of extracted values.",
         ge=0.0,
         le=1.0
@@ -239,6 +244,7 @@ class InvoiceOutput:
                 "#",
                 "vendor_name",
                 "vendor_name_sap",
+                "sap_nr",
                 "vendor_vat",
                 "invoice_number",
                 "invoice_date",
@@ -280,6 +286,7 @@ class InvoiceOutput:
                         counter,
                         r.vendor_name,
                         r.vendor_name_sap,
+                        r.vendor_number,
                         r.vendor_vat,
                         r.invoice_number,
                         r.invoice_date,
