@@ -24,7 +24,7 @@ model_dict = {
     # 3: 'ibm/granite4:latest',
     #  4: 'gemma4:latest',
     # 5: 'gemma4:e2b',
-    6: 'granite4.1:8b',
+    # 6: 'granite4.1:8b',
     7: 'granite4.2:8b',
     # 8: 'ministral-3:8b',
     # 9: 'qwen3.5:4b',
@@ -107,9 +107,10 @@ def run_agent(llm_model,invoice_text):
 
         # 3. Configure Granite 4.2 recommended sampling & optional thinking control
         settings = OpenAIChatModelSettings(
-            temperature=1.0,
+            temperature=0.1,
             top_p=0.95,
-            max_tokens=4096,
+            # max_tokens=8192 4096,16384
+            max_tokens=16384,
             # Optional: toggle Granite 4.2 thinking per agent or per run:
             openai_reasoning_effort='low',
 

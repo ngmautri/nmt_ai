@@ -1,0 +1,100 @@
+import time
+from pathlib import Path
+from nmt_ai.pre_process.pdf_extract import PDFExtract
+from colorama import Fore, Style
+
+# input_data =get_input()
+from nmt_ai.pre_process.pdf_extract import PDFExtract
+from nmt_ai.pydantic_ai6 import check_invoice
+from nmt_ai.models.vendor_invoices import InvoiceOutput
+from nmt_ai.settings import *
+invoices_folder_str = DATA_PATH + "/invoices"
+invoices_folder_path = Path(invoices_folder_str)
+
+def create_folder (msg_id):
+    print(len(msg_id))
+    level1 = msg_id[:len(msg_id)-16]
+    level2_tmp = msg_id[-16:]
+    level2 = level2_tmp[:11]
+    level3 = level2_tmp[-5:]
+
+    return (f'{level1}\\{level2}\\{level3}')
+
+
+
+file_size_max = 1500000
+
+f = r"C:\Users\nmt\0.TOOLS\hno-app\mm_completing\test\output\invoices.xlsx"
+from win32com.client import Dispatch
+try:
+    xl = Dispatch('Excel.Application')
+    wb = xl.Workbooks.Open(f)
+    wb.Close(False,f)
+    print("======================================")
+    print(Fore.GREEN + Style.BRIGHT + f"Find and close: {f}..." + Style.RESET_ALL)
+    print("======================================")
+except Exception as e:
+    print(e)
+
+root_folder = "C:\\0-NMT\\supplier_request_mailbox_v1\\"
+input_text ="""
+000000009AF41958C6D00146BF67E7654C7544A00700D04A822B35A59B4098E57276D02D0E2400000000010C0000D04A822B35A59B4098E57276D02D0E240004E0AEADDF0000
+000000009AF41958C6D00146BF67E7654C7544A00700D04A822B35A59B4098E57276D02D0E2400000000010C0000D04A822B35A59B4098E57276D02D0E240004E0AEADE00000
+000000009AF41958C6D00146BF67E7654C7544A00700D04A822B35A59B4098E57276D02D0E2400000000010C0000D04A822B35A59B4098E57276D02D0E240004E0AEADE20000
+000000009AF41958C6D00146BF67E7654C7544A00700D04A822B35A59B4098E57276D02D0E2400000000010C0000D04A822B35A59B4098E57276D02D0E240004E0AEADE30000
+000000009AF41958C6D00146BF67E7654C7544A00700D04A822B35A59B4098E57276D02D0E2400000000010C0000D04A822B35A59B4098E57276D02D0E240004E0AEADE40000
+000000009AF41958C6D00146BF67E7654C7544A00700D04A822B35A59B4098E57276D02D0E2400000000010C0000D04A822B35A59B4098E57276D02D0E240004E0AEADE60000
+000000009AF41958C6D00146BF67E7654C7544A00700D04A822B35A59B4098E57276D02D0E2400000000010C0000D04A822B35A59B4098E57276D02D0E240004E0AEADE70000
+000000009AF41958C6D00146BF67E7654C7544A00700D04A822B35A59B4098E57276D02D0E2400000000010C0000D04A822B35A59B4098E57276D02D0E240004E0AEADD80000
+000000009AF41958C6D00146BF67E7654C7544A00700D04A822B35A59B4098E57276D02D0E2400000000010C0000D04A822B35A59B4098E57276D02D0E240004E0AEADD50000
+
+"""
+
+input_data1 = input_text.split("\n")
+input_data = list(filter(None, input_data1))
+input_data = list(filter(lambda x: x.strip(), input_data))
+
+# ++++++++++++++++++++++++++++++++++++++++++
+result_list = []
+
+print(f">>>>>>> Please wait.....")
+start = time.time()
+
+for fld in input_data:
+
+    folder_name =fld.strip()
+    input_path = root_folder + create_folder(folder_name)
+
+    folder_path = Path(input_path)
+
+    # pdffiles = [f for f in listdir(input_path) if isfile(join(input_path, f)) and '.PDF' in f]
+
+    pdffiles = [p for p in folder_path.rglob("*") if p.suffix.lower() == ".pdf"]
+
+    print('\nList of PDF Files:\n')
+
+    # services = get_processor_factory()
+    f = ""
+    for input_file in pdffiles:
+        print(input_file)
+        e = PDFExtract()
+
+        text = e.extract(input_file)
+        # text = text.replace("\r", " ")
+        # text = text.replace("\n", " ")
+        # print(text)
+        r = check_invoice(text, str(input_file))
+
+        if len(r) > 0:
+            for i in r:
+                result_list.append(i)
+
+output_path = DATA_PATH + "\\invoices" + "\\output"
+args = {"result_list": result_list, "output_path": output_path}
+output = InvoiceOutput()
+output.export_to_excel(args)
+
+# print(result_list)
+end = time.time()
+print(f"=>>>>>> Execution time: {end - start:.6f} seconds")
+print(f"---------------------------------------------------")
