@@ -38,9 +38,60 @@ If a value is missing, set it to null.
 
 Do not include explanations, comments, labels, or Markdown.
 The very first character must be '{'.
+
 """
 
 INSTRUCTIONS = """
+Extract invoice data strictly from the provided text to match the `Invoice` schema.
+
+Field Mapping & Grounding:
+- Ground every value in the text; never guess or invent data.
+- Set any missing, unreadable, or non-conforming field to `null` (`None`).
+- Scan the full document (header, line items, footer, legal blocks, and signatures); vendor metadata often sits in footers or signature blocks.
+- Map fields to exact `Invoice` attributes:
+  * `invoice_number`, `issue_date`, `due_date`, `currency`, `total_amount`, `vat_amount`
+  * `customer_name`: Must contain "mascot" (case-insensitive); if not, set to `null`.
+  * `vendor_name` and `vendor_vat_number`: Must NOT contain "mascot" (case-insensitive). If "mascot" appears in a vendor-like block, treat it as `customer_name` instead and keep `vendor_name` / `vendor_vat_number` grounded in the actual supplier.
+
+Tool Verification:
+- Always call `get_vendor_number` with the candidate `vendor_name` or `vendor_vat_number` to look up and populate `vendor_number`, `vendor_name_sap` and confirm vendor identity.
+"""
+
+INSTRUCTIONS12 = """
+Extract invoice data strictly from the provided text to match the `Invoice` schema.
+
+Field Mapping & Grounding:
+- Ground every value in the text; never guess or invent data.
+- Set any missing, unreadable, or non-conforming field to `null` (`None`).
+- Scan the full document (header, line items, footer, legal blocks, and signatures); vendor metadata often sits in footers or signature blocks.
+- Map fields to exact `Invoice` attributes:
+  * `invoice_number`, `issue_date`, `due_date`, `currency`, `total_amount`, `vat_amount`
+  * `customer_name`: Must contain "mascot" (case-insensitive); if not, set to `null`.
+  * `vendor_name` and `vendor_vat_number`: Must NOT contain "mascot" (case-insensitive). If "mascot" appears in a vendor-like block, treat it as `customer_name` instead and keep `vendor_name` / `vendor_vat_number` grounded in the actual supplier.
+
+Tool Verification:
+- Always call `get_vendor_number` with the candidate `vendor_name` or `vendor_vat_number` to look up and populate `vendor_number` and confirm vendor identity.
+"""
+
+INSTRUCTIONS5 = """
+You are a precise financial invoice extraction specialist. Extract structured invoice data strictly from the provided text to match the Invoice schema.
+
+Core Rules:
+1. Grounding: Extract only facts explicitly present in the text. Never guess, extrapolate, or invent missing values.
+2. Missing values: Set any missing, unverified, or non-matching field to null.
+3. Vendor verification: Always call `get_vendor_number` to verify the vendor name and VAT/tax identifier against the vendor database before finalizing vendor fields.
+
+Document Scanning:
+- Inspect the entire document, including top headers, line-item tables, bottom footers, legal notices, and signature blocks.
+- Vendor details frequently appear in footers or signature blocks rather than only at the top.
+
+Customer vs. Vendor Rules:
+- Customer: Must match "Mascot" (case-insensitive). If "Mascot" is not present for the customer, set the customer field to null.
+- Vendor: Must NOT match "Mascot" (case-insensitive). If "Mascot" appears in a vendor-like block, treat it as the customer rather than the vendor.
+"""
+
+
+INSTRUCTIONS3 = """
 you are an expert for invoice extraction. please extract invoice from provided text!
 Output MUST be valid JSON matching the Invoice schema.
 Do not include explanations, comments, or natural language.
@@ -101,7 +152,7 @@ def run_agent(llm_model,invoice_text):
         )
 
         model = OpenAIChatModel(
-            model_name="granite4.2:8b",
+            model_name=llm_model,
             provider=provider,
         )
 
@@ -112,7 +163,7 @@ def run_agent(llm_model,invoice_text):
             # max_tokens=8192 4096,16384
             max_tokens=16384,
             # Optional: toggle Granite 4.2 thinking per agent or per run:
-            openai_reasoning_effort='low',
+            openai_reasoning_effort='none',
 
         )
 
