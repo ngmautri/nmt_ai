@@ -32,6 +32,9 @@ LOGS_PATH = ROOT_PATH + "\\logs"
 OLLAMA_INPUT =  DATA_PATH + "\\ollama_input"
 VENDOR_DB =  DATA_PATH + "\\vendor_db"
 
+SAMPLES_DB =  DATA_PATH + "\\samples_db"
+
+
 
 print(ROOT_PATH)
 print(DATA_PATH)

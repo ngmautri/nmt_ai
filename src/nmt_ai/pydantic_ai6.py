@@ -1,5 +1,8 @@
 import asyncio
+import json
 import time
+from dataclasses import dataclass
+from pathlib import Path
 
 import pydantic_ai
 from pydantic_ai import Agent, RunContext, ModelSettings
@@ -11,10 +14,14 @@ from pydantic_ai.providers.ollama import OllamaProvider
 from pydantic import BaseModel, Field, ValidationError, field_validator
 from pydantic_ai.providers.openai import OpenAIProvider
 
+from nmt_ai.models.invoice_draft import InvoiceDraft
 from nmt_ai.models.vendor_invoices import Invoice
 
 
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, Any
+
+from nmt_ai.rag.retrieval import retrieve_similar_invoices
+from nmt_ai.settings import DATA_PATH
 from nmt_ai.vector_db5 import fetch_data
 
 model_dict = {
@@ -141,8 +148,17 @@ Rules:
 """
 
 
-def run_agent(llm_model,invoice_text):
+async def run_agent(llm_model, invoice_text, input_file):
     try:
+
+        @dataclass
+        class InvoiceDeps:
+            similar_samples: list[dict[str, Any]]
+
+        samples = await retrieve_similar_invoices(invoice_text, top_k=1)
+        print(samples)
+        deps = InvoiceDeps(similar_samples=samples)
+
         # 2. Configure Pydantic AI to use a local Granite endpoint (e.g., via Ollama on port 11434)
 
         # 2. Point PydanticAI at your local vLLM or llama-server endpoint
@@ -169,12 +185,36 @@ def run_agent(llm_model,invoice_text):
 
         agent = Agent(
             model=model,
-            # deps_type=FxDeps,
+            deps_type=InvoiceDeps,
             output_type=Invoice,
             model_settings=settings,
             instructions=INSTRUCTIONS,
 
         )
+
+        @agent.instructions
+        def inject_rag_examples(ctx: RunContext[InvoiceDeps]) -> str:
+            if not ctx.deps.similar_samples:
+                return ""
+
+            blocks: list[str] = []
+            for idx, sample in enumerate(ctx.deps.similar_samples, start=1):
+                excerpt = str(sample.get("raw_text", ""))[:1000]
+                verified_json = json.dumps(
+                    sample.get("extracted_invoice", {}),
+                    ensure_ascii=False,
+                )
+                blocks.append(
+                    f"Reference {idx} (layout/mapping cue only—do NOT copy values):\n"
+                    f"Text:\n{excerpt}\n"
+                    f"JSON:\n{verified_json}"
+                )
+
+            return (
+                    "Verified historical invoice examples for layout reference only. "
+                    "Never copy invoice numbers, dates, or amounts from examples:\n\n"
+                    + "\n\n".join(blocks)
+            )
 
         @agent.tool
         async def get_vendor_number(ctx: RunContext[str], question: str) -> str:
@@ -199,11 +239,32 @@ def run_agent(llm_model,invoice_text):
 
         # 4. Run the Agent
 
-        result = agent.run_sync(f"{invoice_text}")
+        result = await agent.run(f"{invoice_text}",deps=deps)
         print(result)
         print(result.all_messages())
         print(result.output)
         print (isinstance(result.output, Invoice))
+
+        extracted_invoice = result.output
+
+
+
+        # Step 1: After running the agent, save the draft to a review folder
+        draft = InvoiceDraft(
+            source_file=input_file,
+            raw_pdf_text=invoice_text,
+            invoice= extracted_invoice,
+        )
+        draft_file = draft.save_json(Path(DATA_PATH + "/review_queue") / f"{Path(input_file).stem}_draft.json")
+
+        # Step 2: Open `draft_file` in VS Code / editor, fix any `invoice` fields,
+        # and change `"reviewed": false` -> `"reviewed": true`.
+
+        # Step 3: Reload and commit verified drafts to ChromaDB
+        # doc_id = commit_draft_file(draft_file)
+        # if doc_id:
+        #     print(f"Committed verified invoice to ChromaDB: {doc_id}")
+
         return result.output
 
     except ValidationError as exc:
@@ -218,17 +279,16 @@ def run_agent(llm_model,invoice_text):
         # Output: Missing fields: ['name', 'email']
 
 
-print(pydantic_ai.__version__)
+print(f"PydanticAI version: {pydantic_ai.__version__}")
 
 
-
-def check_invoice (invoice_text,input_file):
+async def check_invoice (invoice_text, input_file):
     result_list = []
     for k, v in model_dict.items():
         print(f"Model: {v}")
         print(f"        >>>>>>> Running. Please wait.....")
         start = time.time()
-        r = run_agent(v,invoice_text)
+        r = await run_agent(v,invoice_text,input_file)
         end = time.time()
         print(f"        =>>>>>> Execution time: {end - start:.6f} seconds")
         print(f"---------------------------------------------------")
