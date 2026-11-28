@@ -143,82 +143,102 @@ class Invoice_tmp1(BaseModel):
     #     return
 
 
+from typing import Literal, Optional
+from pydantic import BaseModel, Field
+
+DocumentType = Literal[
+    "invoice",
+    "payment_reminder",
+    "credit_note",
+    "proforma",
+    "other",
+]
+
+
 class Invoice(BaseModel):
     """
-    A structured representation of an invoice document.
+    A structured representation of an invoice or related billing document.
     """
 
+    document_type: DocumentType = Field(
+        default="invoice",
+        description=(
+            "Document category: 'invoice' for a standard invoice, "
+            "'payment_reminder' for a payment reminder or dunning/overdue notice, "
+            "'credit_note' for a credit memo or refund notice, "
+            "'proforma' for a proforma invoice or quote/estimate, or "
+            "'other' for statements or unrelated documents."
+        ),
+    )
     invoice_number: Optional[str] = Field(
         default=None,
-        description="Unique identifier assigned to the invoice (e.g., INV-2026-001)."
+        description="Unique identifier assigned to the invoice (e.g., INV-2026-001).",
     )
     invoice_date: Optional[str] = Field(
         default=None,
-        description="Date the invoice was issued, ideally in ISO 8601 format (YYYY-MM-DD)."
+        description="Date the invoice was issued, ideally in ISO 8601 format (YYYY-MM-DD).",
     )
     language: Optional[str] = Field(
         default=None,
-        description="Language in which the invoice is written (e.g., 'EN', 'FR')."
+        description="Language in which the invoice is written (e.g., 'EN', 'FR').",
     )
     due_date: Optional[str] = Field(
         default=None,
-        description="Date by which payment must be made, in ISO 8601 format."
+        description="Date by which payment must be made, in ISO 8601 format.",
     )
     vendor_name: Optional[str] = Field(
         default=None,
-        description="Legal or trading name of the vendor issuing the invoice.")
-
+        description="Legal or trading name of the vendor issuing the invoice.",
+    )
     vendor_name_sap: Optional[str] = Field(
         default=None,
-        description="name of the vendor in SAP to be retrieved from Tool."
+        description="Name of the vendor in SAP to be retrieved from Tool.",
     )
-
     vendor_number: Optional[str] = Field(
         default=None,
-        description="Vendor number in SAP to be retrieved from Tool."
+        description="Vendor number in SAP to be retrieved from Tool.",
     )
     vendor_vat: Optional[str] = Field(
         default=None,
-        description="Vendor's VAT (Value Added Tax) registration number."
+        description="Vendor's VAT (Value Added Tax) registration number.",
     )
     customer_name: Optional[str] = Field(
         default=None,
-        description="Name of the customer or client receiving the invoice."
+        description="Name of the customer or client receiving the invoice.",
     )
-
     customer_address: Optional[str] = Field(
         default=None,
-        description="address of the customer or client of the invoice."
+        description="Address of the customer or client of the invoice.",
     )
     currency: Optional[str] = Field(
         default=None,
-        description="Currency code for monetary values, following ISO 4217 (e.g., 'USD', 'EUR')."
+        description="Currency code for monetary values, following ISO 4217 (e.g., 'USD', 'EUR').",
     )
     payment_terms: Optional[str] = Field(
         default=None,
-        description="Agreed payment terms (e.g., 'Net 30', 'Due on receipt')."
+        description="Agreed payment terms (e.g., 'Net 30', 'Due on receipt').",
     )
     subtotal: Optional[float] = Field(
         default=None,
-        description="Total amount before tax, calculated as the sum of all line items."
+        description="Total amount before tax, calculated as the sum of all line items.",
     )
     tax_rate: Optional[float] = Field(
         default=None,
-        description="Applied tax rate as a percentage (e.g., 10.0 for 10%)."
+        description="Applied tax rate as a percentage (e.g., 10.0 for 10%).",
     )
     tax_amount: Optional[float] = Field(
-        default=0,
-        description="Total tax charged on the invoice, based on subtotal and tax rate."
+        default=0.0,
+        description="Total tax charged on the invoice, based on subtotal and tax rate.",
     )
     total: Optional[float] = Field(
         default=None,
-        description="Final payable amount, equal to subtotal plus tax_amount."
+        description="Final payable amount, equal to subtotal plus tax_amount.",
     )
     confidence: float = Field(
         default=0.05,
         description="Confidence score (0.0–1.0) indicating reliability of extracted values.",
         ge=0.0,
-        le=1.0
+        le=1.0,
     )
 
 

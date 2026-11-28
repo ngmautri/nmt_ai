@@ -174,7 +174,7 @@ async def run_agent(llm_model, invoice_text, input_file):
 
         # 3. Configure Granite 4.2 recommended sampling & optional thinking control
         settings = OpenAIChatModelSettings(
-            temperature=0.1,
+            temperature=0.0,
             top_p=0.95,
             # max_tokens=8192 4096,16384
             max_tokens=16384,
@@ -205,16 +205,17 @@ async def run_agent(llm_model, invoice_text, input_file):
                     ensure_ascii=False,
                 )
                 blocks.append(
-                    f"Reference {idx} (layout/mapping cue only—do NOT copy values):\n"
+                    f"Reference {idx} (layout/mapping/postion cue only—do NOT copy values):\n"
                     f"Text:\n{excerpt}\n"
                     f"JSON:\n{verified_json}"
                 )
 
             return (
-                    "Verified historical invoice examples for layout reference only. "
+                    "Verified historical invoice examples for layout/mapping/postion reference only. "
                     "Never copy invoice numbers, dates, or amounts from examples:\n\n"
                     + "\n\n".join(blocks)
             )
+
 
         @agent.tool
         async def get_vendor_number(ctx: RunContext[str], question: str) -> str:
